@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,30 +13,27 @@ export function ForgotPasswordForm({ onResetSent }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
-    // Validate email
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-    
-    // Simulate loading state
+
+    if (!email.trim()) return setError("Email is required");
+
     setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // In a real app, we would send password reset email here
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    setIsLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
       toast.success("Reset link sent!", {
-        description: `We've sent a password reset link to ${email}`
+        description: `We've sent a password reset link to ${email}`,
       });
       onResetSent();
-    }, 1000);
+    }
   };
 
   return (
@@ -46,7 +43,7 @@ export function ForgotPasswordForm({ onResetSent }: ForgotPasswordFormProps) {
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
         <Label htmlFor="reset-email">Email</Label>
         <Input
@@ -55,16 +52,11 @@ export function ForgotPasswordForm({ onResetSent }: ForgotPasswordFormProps) {
           placeholder="name@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
           required
         />
       </div>
-      
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isLoading}
-      >
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Sending reset link..." : "Send reset link"}
       </Button>
     </form>

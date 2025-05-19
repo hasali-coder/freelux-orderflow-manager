@@ -1,3 +1,4 @@
+// ✅ FILE: src/components/clients/ClientForm.tsx
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -23,20 +24,15 @@ import {
 } from "@/components/ui/select";
 import { Client } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import countryList from "react-select-country-list";
 
 const clientSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  phone: z.string().min(5, {
-    message: "Please enter a valid phone number.",
-  }),
-  preferredPaymentMethod: z.string().min(1, {
-    message: "Please select a preferred payment method.",
-  }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  phone: z.string().min(5, { message: "Please enter a valid phone number." }),
+  preferred_payment_method: z.string().min(1, { message: "Select a payment method." }),
+  country: z.string().min(2, { message: "Please select a country." }),
+  rating: z.coerce.number().min(1).max(5),
   notes: z.string().optional(),
 });
 
@@ -46,28 +42,32 @@ interface ClientFormProps {
   buttonText?: string;
 }
 
-export function ClientForm({ 
+export function ClientForm({
   onSubmit,
   initialValues = {
     name: "",
     email: "",
     phone: "",
-    preferredPaymentMethod: "",
+    preferred_payment_method: "",
+    country: "",
+    rating: 3,
     notes: "",
   },
-  buttonText = "Save Client"
+  buttonText = "Save Client",
 }: ClientFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<z.infer<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
     defaultValues: initialValues,
   });
 
-  const handleSubmit = (values: z.infer<typeof clientSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof clientSchema>) => {
     try {
+      console.log("Submitting client form:", values);
       onSubmit(values);
     } catch (error) {
+      console.error("Submission failed:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -75,6 +75,8 @@ export function ClientForm({
       });
     }
   };
+
+  const countries = countryList().getData();
 
   return (
     <Form {...form}>
@@ -93,6 +95,7 @@ export function ClientForm({
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="email"
@@ -106,6 +109,7 @@ export function ClientForm({
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="phone"
@@ -113,15 +117,16 @@ export function ClientForm({
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input placeholder="(555) 123-4567" {...field} />
+                  <Input placeholder="07xx xxx xxx" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
-            name="preferredPaymentMethod"
+            name="preferred_payment_method"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Preferred Payment Method</FormLabel>
@@ -132,9 +137,9 @@ export function ClientForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="M-Pesa">M-Pesa</SelectItem>
                     <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
                     <SelectItem value="PayPal">PayPal</SelectItem>
-                    <SelectItem value="Credit Card">Credit Card</SelectItem>
                     <SelectItem value="Cash">Cash</SelectItem>
                     <SelectItem value="Crypto">Cryptocurrency</SelectItem>
                   </SelectContent>
@@ -143,7 +148,48 @@ export function ClientForm({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.value} value={country.label}>
+                        {country.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="rating"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Client Rating</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} max={5} {...field} />
+                </FormControl>
+                <FormDescription>Rate from 1 (low) to 5 (high).</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
+
         <FormField
           control={form.control}
           name="notes"
@@ -164,6 +210,7 @@ export function ClientForm({
             </FormItem>
           )}
         />
+
         <Button type="submit" className="w-full md:w-auto">
           {buttonText}
         </Button>

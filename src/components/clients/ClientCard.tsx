@@ -1,9 +1,11 @@
+// ✅ FILE: src/components/clients/ClientCard.tsx
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Client, Order } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Star } from "lucide-react";
 
 interface ClientCardProps {
   client: Client;
@@ -12,20 +14,32 @@ interface ClientCardProps {
   onDeleteClick: () => void;
 }
 
+const getFlagEmoji = (countryName: string | null | undefined) => {
+  if (!countryName) return "";
+  const code = countryName
+    .toUpperCase()
+    .slice(0, 2)
+    .replace(/[^A-Z]/g, "");
+  return code
+    .split('')
+    .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join('');
+};
+
 export function ClientCard({ client, orders, onEditClick, onDeleteClick }: ClientCardProps) {
   const totalSpent = orders.reduce((sum, order) => {
     if (order.paymentStatus === 'paid') {
       return sum + order.cost;
     } else if (order.paymentStatus === 'partial') {
-      return sum + (order.cost / 2); // Estimate 50% for partial
+      return sum + (order.cost / 2);
     }
     return sum;
   }, 0);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
     }).format(value);
   };
 
@@ -39,7 +53,7 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
           <div>
             <CardTitle>{client.name}</CardTitle>
             <CardDescription className="mt-1">
-              Client since {new Date(client.createdAt).toLocaleDateString()}
+              Client since {new Date(client.created_at).toLocaleDateString()}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -52,6 +66,7 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -65,9 +80,22 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
             </div>
             <div>
               <span className="text-sm font-medium text-muted-foreground">Preferred Payment:</span>
-              <p className="text-sm">{client.preferredPaymentMethod}</p>
+              <p className="text-sm">{client.preferred_payment_method}</p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-muted-foreground">Country:</span>
+              <p className="text-sm">{getFlagEmoji(client.country)} {client.country}</p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-muted-foreground">Rating:</span>
+              <p className="flex gap-1 text-yellow-500">
+                {[...Array(client.rating ?? 0)].map((_, i) => (
+                  <Star key={i} size={16} fill="currentColor" />
+                ))}
+              </p>
             </div>
           </div>
+
           <div className="space-y-3">
             <div>
               <span className="text-sm font-medium text-muted-foreground">Total Revenue:</span>
@@ -81,20 +109,20 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
                   {completedOrders} Completed
                 </Badge>
                 {overdueOrders > 0 && (
-                  <Badge variant="destructive">
-                    {overdueOrders} Overdue
-                  </Badge>
+                  <Badge variant="destructive">{overdueOrders} Overdue</Badge>
                 )}
               </div>
             </div>
           </div>
         </div>
+
         {client.notes && (
           <div className="mt-4 pt-4 border-t">
             <span className="text-sm font-medium text-muted-foreground">Notes:</span>
             <p className="text-sm mt-1">{client.notes}</p>
           </div>
         )}
+
         {orders.length > 0 && (
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between items-center mb-2">
@@ -105,19 +133,21 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
             </div>
             <div className="space-y-1">
               {orders.slice(0, 2).map((order) => (
-                <Link 
+                <Link
                   key={order.id}
                   to={`/orders/${order.id}`}
                   className="flex justify-between items-center py-2 px-3 rounded-md hover:bg-secondary"
                 >
                   <span className="text-sm">{order.title}</span>
-                  <Badge variant={
-                    order.status === 'complete' 
-                      ? 'outline'
-                      : order.status === 'overdue'
-                      ? 'destructive'
-                      : 'secondary'
-                  }>
+                  <Badge
+                    variant={
+                      order.status === 'complete'
+                        ? 'outline'
+                        : order.status === 'overdue'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                  >
                     {order.status}
                   </Badge>
                 </Link>

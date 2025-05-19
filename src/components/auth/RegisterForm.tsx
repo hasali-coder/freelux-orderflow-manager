@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,45 +20,35 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
-    // Validate inputs
-    if (!fullName.trim()) {
-      setError("Full name is required");
-      return;
-    }
-    
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-    
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    
-    // Simulate loading state
+
+    if (!fullName.trim()) return setError("Full name is required");
+    if (!email.trim()) return setError("Email is required");
+    if (password.length < 8) return setError("Password must be at least 8 characters");
+    if (password !== confirmPassword) return setError("Passwords do not match");
+
     setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // In a real app, we would register the user here
-      // For now, just show a success message and navigate to login
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
       toast.success("Account created successfully!", {
-        description: "You can now sign in with your credentials."
+        description: "You can now sign in with your credentials.",
       });
       onRegisterSuccess();
-    }, 1000);
+    }
   };
 
   return (
@@ -68,7 +58,7 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
         <Label htmlFor="full-name">Full Name</Label>
         <Input
@@ -77,11 +67,10 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
           placeholder="John Doe"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          autoComplete="name"
           required
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="register-email">Email</Label>
         <Input
@@ -90,11 +79,10 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
           placeholder="name@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
           required
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="register-password">Password</Label>
         <div className="relative">
@@ -104,7 +92,6 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
             required
             className="pr-10"
           />
@@ -115,18 +102,11 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="sr-only">
-              {showPassword ? "Hide password" : "Show password"}
-            </span>
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="confirm-password">Confirm Password</Label>
         <div className="relative">
@@ -136,7 +116,6 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
             placeholder="••••••••"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            autoComplete="new-password"
             required
             className="pr-10"
           />
@@ -147,23 +126,12 @@ export function RegisterForm({ onRegisterSuccess }: RegisterFormProps) {
             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
           >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="sr-only">
-              {showConfirmPassword ? "Hide password" : "Show password"}
-            </span>
+            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
       </div>
-      
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isLoading}
-      >
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Creating account..." : "Create account"}
       </Button>
     </form>

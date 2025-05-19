@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,32 +19,27 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
-    // Validate inputs
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
-    }
-    
-    if (!password) {
-      setError("Password is required");
-      return;
-    }
-    
-    // Simulate loading state
+
+    if (!email.trim()) return setError("Email is required");
+    if (!password) return setError("Password is required");
+
     setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // In a real app, we would validate credentials here
-      // For now, just allow login
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
       onLogin();
-    }, 1000);
+    }
   };
 
   return (
@@ -54,7 +49,7 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -65,14 +60,11 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
           required
-          className="transition-all"
         />
       </div>
-      
+
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-        </div>
+        <Label htmlFor="password">Password</Label>
         <div className="relative">
           <Input
             id="password"
@@ -82,7 +74,7 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
-            className="pr-10 transition-all"
+            className="pr-10"
           />
           <Button
             type="button"
@@ -91,26 +83,22 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            )}
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             <span className="sr-only">
               {showPassword ? "Hide password" : "Show password"}
             </span>
           </Button>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="remember-me" 
-            checked={rememberMe} 
+          <Checkbox
+            id="remember-me"
+            checked={rememberMe}
             onCheckedChange={(checked) => setRememberMe(checked === true)}
           />
-          <Label htmlFor="remember-me" className="text-sm cursor-pointer">
+          <Label htmlFor="remember-me" className="text-sm">
             Remember me
           </Label>
         </div>
@@ -123,12 +111,8 @@ export function LoginForm({ onLogin, onForgotPassword }: LoginFormProps) {
           Forgot password?
         </Button>
       </div>
-      
-      <Button
-        type="submit"
-        className="w-full transition-all"
-        disabled={isLoading}
-      >
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Signing in..." : "Sign in"}
       </Button>
     </form>
