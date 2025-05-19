@@ -6,7 +6,7 @@ import { OrderReport } from "@/components/reports/OrderReport";
 import { ExpenseReport } from "@/components/reports/ExpenseReport";
 import { ProfitLossReport } from "@/components/reports/ProfitLossReport";
 import { useData } from "@/context/DataContext";
-import { FileText, FileExcel, FilePdf } from "lucide-react";
+import { FileText, File, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -49,7 +49,7 @@ export default function Reports() {
             className="flex items-center gap-1"
             onClick={() => handleExport("pdf")}
           >
-            <FilePdf className="h-4 w-4" />
+            <File className="h-4 w-4" />
             PDF
           </Button>
           <Button 
@@ -58,7 +58,7 @@ export default function Reports() {
             className="flex items-center gap-1"
             onClick={() => handleExport("excel")}
           >
-            <FileExcel className="h-4 w-4" />
+            <Download className="h-4 w-4" />
             Excel
           </Button>
           <Button 
