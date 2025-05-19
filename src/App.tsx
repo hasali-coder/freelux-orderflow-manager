@@ -10,6 +10,7 @@ import MainLayout from "@/components/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Orders from "./pages/Orders";
+import OrderDetail from "./pages/OrderDetail";
 import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
@@ -31,6 +32,7 @@ const App = () => (
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/reports" element={<Reports />} />
               </Route>

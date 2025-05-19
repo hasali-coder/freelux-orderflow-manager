@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Order } from "@/types";
 import { formatDistanceToNow, isPast } from "date-fns";
+import { Link } from "react-router-dom";
 
 interface OrderCardProps {
   order: Order;
@@ -91,6 +92,14 @@ export function OrderCard({ order, clientName, onEditClick, onDeleteClick }: Ord
           <div>
             <p className="text-sm font-medium text-muted-foreground">Description</p>
             <p className="text-sm mt-1 line-clamp-3">{order.description}</p>
+          </div>
+
+          <div className="pt-2">
+            <Button asChild variant="default" className="w-full">
+              <Link to={`/orders/${order.id}`}>
+                View Order
+              </Link>
+            </Button>
           </div>
         </div>
       </CardContent>
