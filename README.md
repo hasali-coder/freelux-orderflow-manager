@@ -16,10 +16,10 @@ Then follow the sacred ritual:
 
 ```sh
 # Step 1: Clone it
-git clone <YOUR_GIT_URL>
+git clone https://github.com/hasali-coder/freelux-orderflow-manager.git
 
 # Step 2: Pull up to the project folder
-cd <YOUR_PROJECT_NAME>
+cd freelux_orderflow_manager
 
 # Step 3: Grab your dependencies
 npm i
