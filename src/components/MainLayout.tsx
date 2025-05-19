@@ -37,7 +37,6 @@ export default function MainLayout() {
     <div className="min-h-screen flex w-full">
       <Sidebar 
         defaultCollapsed={false} 
-        onCollapsedChange={setCollapsed}
         collapsible
       >
         <SidebarContent>
