@@ -35,3 +35,18 @@ export type Expense = {
   category: ExpenseCategory;
   notes: string;
 };
+
+// New types for calendar functionality
+export type EventType = 'deadline' | 'meeting' | 'personal';
+
+export type CalendarEventItem = {
+  id: string;
+  title: string;
+  description?: string;
+  date: Date;
+  type: EventType;
+  clientId?: string;
+  orderId?: string;
+  status?: string;
+  color?: string;
+};
