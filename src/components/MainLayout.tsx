@@ -36,8 +36,8 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen flex w-full">
       <Sidebar 
-        defaultCollapsed={false} 
-        collapsible
+        defaultCollapsed={false}
+        collapsible="icon"
       >
         <SidebarContent>
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-4 py-6`}>

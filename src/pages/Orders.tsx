@@ -178,14 +178,14 @@ export default function Orders() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
           <Select 
-            value={statusFilter || ""} 
-            onValueChange={(val) => setStatusFilter(val || null)}
+            value={statusFilter || "all-statuses"} 
+            onValueChange={(val) => setStatusFilter(val === "all-statuses" ? null : val)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all-statuses">All Statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="complete">Complete</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
@@ -193,14 +193,14 @@ export default function Orders() {
           </Select>
 
           <Select 
-            value={clientFilter || ""} 
-            onValueChange={(val) => setClientFilter(val || null)}
+            value={clientFilter || "all-clients"} 
+            onValueChange={(val) => setClientFilter(val === "all-clients" ? null : val)}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by client" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Clients</SelectItem>
+              <SelectItem value="all-clients">All Clients</SelectItem>
               {clients.map((client) => (
                 <SelectItem key={client.id} value={client.id}>
                   {client.name}
