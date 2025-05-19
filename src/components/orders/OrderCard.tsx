@@ -43,9 +43,15 @@ export function OrderCard({ order, clientName, onEditClick, onDeleteClick }: Ord
     }
   };
 
+  const getPaymentPercentage = () => {
+    if (!order.amountPaid) return 0;
+    return Math.round((order.amountPaid / order.cost) * 1000) / 10;
+  };
+
   const deadlineDate = new Date(order.deadline);
   const isDeadlinePast = isPast(deadlineDate);
   const deadlineFormatted = formatDistanceToNow(deadlineDate, { addSuffix: true });
+  const paymentPercentage = getPaymentPercentage();
 
   return (
     <Card className="hover-card card-glow">
@@ -73,6 +79,9 @@ export function OrderCard({ order, clientName, onEditClick, onDeleteClick }: Ord
             </Badge>
             <Badge variant={getPaymentBadgeVariant(order.paymentStatus)} className="capitalize">
               {order.paymentStatus}
+              {order.paymentStatus === 'partial' && order.amountPaid && (
+                <span className="ml-1">({paymentPercentage}%)</span>
+              )}
             </Badge>
           </div>
           

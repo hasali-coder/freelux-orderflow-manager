@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Client, Order, Expense, OrderStatus, PaymentStatus, ExpenseCategory } from '../types';
@@ -68,6 +67,7 @@ const initialOrders: Order[] = [
     paymentStatus: 'partial',
     status: 'pending',
     createdAt: '2023-05-05T08:30:00Z',
+    amountPaid: 1750, // Added amountPaid field (50% paid)
   },
   {
     id: '2',
@@ -79,6 +79,7 @@ const initialOrders: Order[] = [
     paymentStatus: 'paid',
     status: 'complete',
     createdAt: '2023-05-01T10:15:00Z',
+    amountPaid: 800, // Fully paid
   },
   {
     id: '3',
@@ -90,6 +91,7 @@ const initialOrders: Order[] = [
     paymentStatus: 'unpaid',
     status: 'overdue',
     createdAt: '2023-04-20T14:30:00Z',
+    amountPaid: 0, // No payment
   },
   {
     id: '4',
@@ -101,6 +103,7 @@ const initialOrders: Order[] = [
     paymentStatus: 'unpaid',
     status: 'pending',
     createdAt: '2023-05-25T11:45:00Z',
+    amountPaid: 0, // No payment
   }
 ];
 
@@ -188,6 +191,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...order,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
+      amountPaid: order.paymentStatus === 'paid' ? order.cost : (order.paymentStatus === 'partial' ? order.amountPaid || 0 : 0),
     };
     setOrders([...orders, newOrder]);
   };
@@ -237,7 +241,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Analytics functions
   const getTotalRevenue = () => {
     return orders.reduce((total, order) => {
-      if (order.paymentStatus === 'paid') {
+      if (order.amountPaid !== undefined) {
+        return total + order.amountPaid;
+      } else if (order.paymentStatus === 'paid') {
         return total + order.cost;
       } else if (order.paymentStatus === 'partial') {
         return total + (order.cost / 2); // Assuming 50% for partial for this example
@@ -262,7 +268,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         months[monthYear] = { income: 0, expenses: 0 };
       }
 
-      if (order.paymentStatus === 'paid') {
+      if (order.amountPaid !== undefined) {
+        months[monthYear].income += order.amountPaid;
+      } else if (order.paymentStatus === 'paid') {
         months[monthYear].income += order.cost;
       } else if (order.paymentStatus === 'partial') {
         months[monthYear].income += (order.cost / 2);
@@ -307,7 +315,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         clientRevenue[order.clientId] = 0;
       }
 
-      if (order.paymentStatus === 'paid') {
+      if (order.amountPaid !== undefined) {
+        clientRevenue[order.clientId] += order.amountPaid;
+      } else if (order.paymentStatus === 'paid') {
         clientRevenue[order.clientId] += order.cost;
       } else if (order.paymentStatus === 'partial') {
         clientRevenue[order.clientId] += (order.cost / 2);

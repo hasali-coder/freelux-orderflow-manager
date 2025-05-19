@@ -2,7 +2,7 @@
 import { useParams, Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,12 +10,14 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useData } from "@/context/DataContext";
 import { Order, Client } from "@/types";
+import { OrderPaymentModal } from "@/components/orders/OrderPaymentModal";
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
-  const { orders, clients, getClientById } = useData();
+  const { orders, clients, getClientById, updateOrder } = useData();
   const [order, setOrder] = useState<Order | null>(null);
   const [client, setClient] = useState<Client | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -82,6 +84,27 @@ export default function OrderDetail() {
     }
   };
 
+  const handlePaymentComplete = (order: Order, amountPaid: number) => {
+    const totalPaidNow = (order.amountPaid || 0) + amountPaid;
+    const newPaymentStatus = totalPaidNow >= order.cost ? 'paid' : 'partial';
+    
+    const updatedOrder = {
+      ...order,
+      paymentStatus: newPaymentStatus,
+      amountPaid: totalPaidNow
+    };
+    
+    updateOrder(updatedOrder);
+    setOrder(updatedOrder);
+  };
+
+  const getPaymentPercentage = () => {
+    if (!order.amountPaid) return 0;
+    return Math.round((order.amountPaid / order.cost) * 1000) / 10;
+  };
+
+  const paymentPercentage = getPaymentPercentage();
+
   return (
     <div className="space-y-6 animate-in">
       <div className="flex items-center justify-between">
@@ -109,6 +132,9 @@ export default function OrderDetail() {
                 </Badge>
                 <Badge variant={getPaymentBadgeVariant(order.paymentStatus)} className="capitalize">
                   {order.paymentStatus}
+                  {order.paymentStatus === 'partial' && order.amountPaid && (
+                    <span className="ml-1">({paymentPercentage}%)</span>
+                  )}
                 </Badge>
               </div>
 
@@ -125,6 +151,12 @@ export default function OrderDetail() {
                   <h3 className="text-sm font-medium text-muted-foreground">Cost</h3>
                   <p className="text-xl font-bold">{formatCurrency(order.cost)}</p>
                 </div>
+                {order.amountPaid !== undefined && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Amount Paid</h3>
+                    <p className="text-xl font-bold">{formatCurrency(order.amountPaid)}</p>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -135,6 +167,19 @@ export default function OrderDetail() {
                   <p>{order.description}</p>
                 </div>
               </div>
+
+              {order.paymentStatus !== 'paid' && (
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => setIsPaymentModalOpen(true)}
+                    className="w-full"
+                    variant="default"
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Process Payment
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -179,6 +224,15 @@ export default function OrderDetail() {
           <Link to="/orders">Back to Orders</Link>
         </Button>
       </div>
+
+      {order && (
+        <OrderPaymentModal
+          order={order}
+          open={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onPaymentComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 }

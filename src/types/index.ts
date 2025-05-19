@@ -22,6 +22,7 @@ export type Order = {
   paymentStatus: PaymentStatus;
   status: OrderStatus;
   createdAt: string;
+  amountPaid?: number; // New field to track amount paid
 };
 
 export type ExpenseCategory = 'tools' | 'communication' | 'utilities' | 'supplies' | 'travel' | 'other';
