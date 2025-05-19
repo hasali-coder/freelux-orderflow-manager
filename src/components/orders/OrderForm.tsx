@@ -1,18 +1,8 @@
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -21,248 +11,199 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Client, Order, OrderStatus, PaymentStatus } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-
-// Helper to make sure deadline is a future date for new orders
-const currentDate = new Date();
-currentDate.setHours(0, 0, 0, 0);
-
-// Schema with conditional validation for deadline
-const createOrderSchema = (isNewOrder: boolean) => {
-  return z.object({
-    clientId: z.string({
-      required_error: "Please select a client",
-    }),
-    title: z.string().min(2, {
-      message: "Title must be at least 2 characters",
-    }),
-    description: z.string().min(5, {
-      message: "Description must be at least 5 characters",
-    }),
-    deadline: z
-      .string()
-      .refine(
-        (date) => !isNewOrder || new Date(date) >= currentDate,
-        {
-          message: "Deadline must be in the future for new orders",
-        }
-      ),
-    cost: z.coerce
-      .number()
-      .min(0, {
-        message: "Cost must be a positive number",
-      }),
-    paymentStatus: z.enum(["paid", "unpaid", "partial"], {
-      required_error: "Please select a payment status",
-    }),
-    status: z.enum(["pending", "complete", "overdue"], {
-      required_error: "Please select an order status",
-    }),
-  });
-};
+import { Order, OrderStatus, PaymentStatus, Client } from "@/types";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface OrderFormProps {
-  onSubmit: (values: Omit<Order, 'id' | 'createdAt'>) => void;
-  initialValues?: Partial<Order>;
+  onSubmit: (data: Omit<Order, 'id' | 'createdAt'>) => void;
+  initialValues?: Order;
   clients: Client[];
   isNewOrder?: boolean;
-  buttonText?: string;
+  buttonText: string;
 }
 
-export function OrderForm({
-  onSubmit,
-  initialValues = {
-    clientId: "",
-    title: "",
-    description: "",
-    deadline: new Date().toISOString().split("T")[0],
-    cost: 0,
-    paymentStatus: "unpaid" as PaymentStatus,
-    status: "pending" as OrderStatus,
-  },
+export function OrderForm({ 
+  onSubmit, 
+  initialValues, 
   clients,
   isNewOrder = true,
-  buttonText = "Save Order",
+  buttonText 
 }: OrderFormProps) {
-  const { toast } = useToast();
+  const [title, setTitle] = useState(initialValues?.title || "");
+  const [description, setDescription] = useState(initialValues?.description || "");
+  const [clientId, setClientId] = useState(initialValues?.clientId || (clients.length > 0 ? clients[0].id : ""));
+  const [cost, setCost] = useState(initialValues?.cost?.toString() || "");
+  const [deadline, setDeadline] = useState<Date>(
+    initialValues?.deadline ? new Date(initialValues.deadline) : new Date()
+  );
+  const [status, setStatus] = useState<OrderStatus>(initialValues?.status || "pending");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialValues?.paymentStatus || "unpaid");
+  const [error, setError] = useState<string | null>(null);
 
-  // Get the appropriate schema based on whether it's a new order or not
-  const orderSchema = createOrderSchema(isNewOrder);
-  type OrderFormValues = z.infer<typeof orderSchema>;
-  
-  // Format deadline for form input
-  const formattedDeadline = initialValues.deadline
-    ? new Date(initialValues.deadline).toISOString().split("T")[0]
-    : new Date().toISOString().split("T")[0];
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-  const form = useForm<OrderFormValues>({
-    resolver: zodResolver(orderSchema),
-    defaultValues: {
-      ...initialValues,
-      deadline: formattedDeadline,
-    },
-  });
-
-  const handleSubmit = (values: OrderFormValues) => {
-    try {
-      // Ensure deadline is in ISO format
-      const formattedValues = {
-        ...values,
-        deadline: new Date(values.deadline).toISOString(),
-      };
-      
-      onSubmit(formattedValues);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "There was a problem saving the order.",
-      });
+    if (!title.trim()) {
+      setError("Please enter a title for the order.");
+      return;
     }
+
+    if (!description.trim()) {
+      setError("Please provide a description for the order.");
+      return;
+    }
+
+    if (!clientId) {
+      setError("Please select a client.");
+      return;
+    }
+
+    if (!cost || isNaN(parseFloat(cost)) || parseFloat(cost) <= 0) {
+      setError("Please enter a valid cost greater than 0.");
+      return;
+    }
+
+    onSubmit({
+      title: title.trim(),
+      description: description.trim(),
+      clientId, 
+      cost: parseFloat(cost),
+      deadline: deadline.toISOString(),
+      status,
+      paymentStatus,
+    });
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="clientId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Client</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Project Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Website Redesign" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="deadline"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Deadline</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="cost"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cost</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="paymentStatus"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                    <SelectItem value="partial">Partially Paid</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Order Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select order status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="complete">Complete</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Project details, requirements, and notes..."
-                  className="resize-none min-h-[120px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Include all relevant details about the project scope and requirements.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="text-sm font-medium text-destructive">{error}</div>}
+      
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g., Website Redesign"
         />
-        <Button type="submit" className="w-full md:w-auto">
-          {buttonText}
-        </Button>
-      </form>
-    </Form>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe the details of this order..."
+          className="min-h-[100px]"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="client">Client</Label>
+        <Select value={clientId} onValueChange={setClientId}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select client" />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.length > 0 ? (
+              clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-clients" disabled>
+                No clients available
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="cost">Cost</Label>
+        <Input
+          id="cost"
+          value={cost}
+          onChange={(e) => setCost(e.target.value)}
+          placeholder="e.g., 1000.00"
+          type="number"
+          step="0.01"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Deadline</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !deadline && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={deadline}
+              onSelect={(date) => date && setDeadline(date)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      
+      {!isNewOrder && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={status} onValueChange={(value) => setStatus(value as OrderStatus)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="paymentStatus">Payment Status</Label>
+            <Select 
+              value={paymentStatus} 
+              onValueChange={(value) => setPaymentStatus(value as PaymentStatus)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
+      
+      <Button type="submit" className="w-full">{buttonText}</Button>
+    </form>
   );
 }

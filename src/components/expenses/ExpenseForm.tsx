@@ -1,18 +1,8 @@
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -22,172 +12,140 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Expense, ExpenseCategory } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-
-const expenseSchema = z.object({
-  title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }),
-  amount: z.coerce.number().min(0.01, {
-    message: "Amount must be greater than 0.",
-  }),
-  date: z.string().refine((date) => !isNaN(new Date(date).getTime()), {
-    message: "Please enter a valid date.",
-  }),
-  category: z.enum(["tools", "communication", "utilities", "supplies", "travel", "other"], {
-    required_error: "Please select a category.",
-  }),
-  notes: z.string().optional(),
-});
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
-  onSubmit: (values: Omit<Expense, 'id'>) => void;
-  initialValues?: Partial<Expense>;
-  buttonText?: string;
+  onSubmit: (data: Omit<Expense, 'id'>) => void;
+  initialValues?: Expense;
+  buttonText: string;
 }
 
-export function ExpenseForm({
-  onSubmit,
-  initialValues = {
-    title: "",
-    amount: 0,
-    date: new Date().toISOString().split("T")[0],
-    category: "other" as ExpenseCategory,
-    notes: "",
-  },
-  buttonText = "Save Expense",
-}: ExpenseFormProps) {
-  const { toast } = useToast();
+export function ExpenseForm({ onSubmit, initialValues, buttonText }: ExpenseFormProps) {
+  const [title, setTitle] = useState(initialValues?.title || "");
+  const [amount, setAmount] = useState(initialValues?.amount?.toString() || "");
+  const [category, setCategory] = useState<ExpenseCategory>(initialValues?.category || "other");
+  const [date, setDate] = useState<Date>(
+    initialValues?.date ? new Date(initialValues.date) : new Date()
+  );
+  const [notes, setNotes] = useState(initialValues?.notes || "");
+  const [error, setError] = useState<string | null>(null);
 
-  // Format date for form input
-  const formattedDate = initialValues.date
-    ? new Date(initialValues.date).toISOString().split("T")[0]
-    : new Date().toISOString().split("T")[0];
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-  const form = useForm<z.infer<typeof expenseSchema>>({
-    resolver: zodResolver(expenseSchema),
-    defaultValues: {
-      ...initialValues,
-      date: formattedDate,
-    },
-  });
-
-  const handleSubmit = (values: z.infer<typeof expenseSchema>) => {
-    try {
-      // Format date to ISO
-      const formattedValues = {
-        ...values,
-        date: new Date(values.date).toISOString(),
-      };
-      
-      onSubmit(formattedValues);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "There was a problem saving the expense.",
-      });
+    if (!title.trim()) {
+      setError("Please enter a title for the expense.");
+      return;
     }
+
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      setError("Please enter a valid amount greater than 0.");
+      return;
+    }
+
+    if (!category) {
+      setError("Please select a category.");
+      return;
+    }
+
+    onSubmit({
+      title: title.trim(),
+      amount: parseFloat(amount),
+      category,
+      date: date.toISOString(),
+      notes: notes.trim() || "", // Ensure notes is a string
+    });
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Expense Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Adobe Subscription" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="tools">Tools & Software</SelectItem>
-                    <SelectItem value="communication">Communication</SelectItem>
-                    <SelectItem value="utilities">Utilities</SelectItem>
-                    <SelectItem value="supplies">Supplies</SelectItem>
-                    <SelectItem value="travel">Travel</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Additional details about this expense..."
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Include any relevant details about this expense.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="text-sm font-medium text-destructive">{error}</div>}
+      
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g., Software Subscription"
         />
-        <Button type="submit" className="w-full md:w-auto">
-          {buttonText}
-        </Button>
-      </form>
-    </Form>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="amount">Amount</Label>
+        <Input
+          id="amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="e.g., 99.99"
+          type="number"
+          step="0.01"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="category">Category</Label>
+        <Select value={category} onValueChange={(value) => setCategory(value as ExpenseCategory)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tools">Tools & Software</SelectItem>
+            <SelectItem value="communication">Communication</SelectItem>
+            <SelectItem value="utilities">Utilities</SelectItem>
+            <SelectItem value="supplies">Supplies</SelectItem>
+            <SelectItem value="travel">Travel</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Date</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(date) => date && setDate(date)}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes (Optional)</Label>
+        <Textarea
+          id="notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add any additional details..."
+        />
+      </div>
+      
+      <Button type="submit" className="w-full">{buttonText}</Button>
+    </form>
   );
 }

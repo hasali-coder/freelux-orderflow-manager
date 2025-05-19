@@ -240,14 +240,14 @@ export default function Expenses() {
             </div>
             <div className="sm:ml-auto">
               <Select 
-                value={categoryFilter || ""} 
-                onValueChange={(val) => setCategoryFilter(val || null)}
+                value={categoryFilter || "all-categories"} 
+                onValueChange={(val) => setCategoryFilter(val === "all-categories" ? null : val)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all-categories">All Categories</SelectItem>
                   <SelectItem value="tools">Tools & Software</SelectItem>
                   <SelectItem value="communication">Communication</SelectItem>
                   <SelectItem value="utilities">Utilities</SelectItem>

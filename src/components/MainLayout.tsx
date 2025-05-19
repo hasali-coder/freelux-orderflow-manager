@@ -36,7 +36,6 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen flex w-full">
       <Sidebar 
-        defaultCollapsed={false}
         collapsible="icon"
       >
         <SidebarContent>
