@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Orders from "./pages/Orders";
 import Expenses from "./pages/Expenses";
+import Reports from "./pages/Reports";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,11 +26,13 @@ const App = () => (
           <Sonner />
           <SidebarProvider>
             <Routes>
+              <Route path="/login" element={<Auth />} />
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/expenses" element={<Expenses />} />
+                <Route path="/reports" element={<Reports />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

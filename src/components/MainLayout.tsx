@@ -18,6 +18,7 @@ import {
   Calendar,
   Circle,
   DollarSign,
+  FileText,
   Plus,
   User,
   Users
@@ -30,13 +31,16 @@ export default function MainLayout() {
     { title: "Dashboard", icon: BarChart2, path: "/" },
     { title: "Clients", icon: Users, path: "/clients" },
     { title: "Orders", icon: Calendar, path: "/orders" },
-    { title: "Expenses", icon: DollarSign, path: "/expenses" }
+    { title: "Expenses", icon: DollarSign, path: "/expenses" },
+    { title: "Reports", icon: FileText, path: "/reports" }
   ];
 
   return (
     <div className="min-h-screen flex w-full">
       <Sidebar 
         collapsible="icon"
+        collapsed={collapsed}
+        onCollapsedChange={setCollapsed}
       >
         <SidebarContent>
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-4 py-6`}>
