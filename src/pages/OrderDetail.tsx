@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useData } from "@/context/DataContext";
-import { Order, Client } from "@/types";
+import { Order, Client, PaymentStatus } from "@/types";
 import { OrderPaymentModal } from "@/components/orders/OrderPaymentModal";
 
 export default function OrderDetail() {
@@ -86,7 +86,7 @@ export default function OrderDetail() {
 
   const handlePaymentComplete = (order: Order, amountPaid: number) => {
     const totalPaidNow = (order.amountPaid || 0) + amountPaid;
-    const newPaymentStatus = totalPaidNow >= order.cost ? 'paid' : 'partial';
+    const newPaymentStatus: PaymentStatus = totalPaidNow >= order.cost ? 'paid' : 'partial';
     
     const updatedOrder = {
       ...order,
