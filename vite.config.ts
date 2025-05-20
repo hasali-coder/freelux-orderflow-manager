@@ -10,7 +10,8 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: []
+      external: ['@supabase/supabase-js']
     }
   }
 })
+
