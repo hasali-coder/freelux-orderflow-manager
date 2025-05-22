@@ -1,116 +1,114 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// src/components/orders/OrderCard.tsx
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Order } from "@/types";
-import { formatDistanceToNow, isPast } from "date-fns";
-import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import type { OrderWithClient } from "./OrderCard";
 
 interface OrderCardProps {
-  order: Order;
-  clientName: string;
-  onEditClick: () => void;
-  onDeleteClick: () => void;
+  order: OrderWithClient;
+  onEdit: () => void;
+  onDelete: () => void;
+  onUpdatePayment?: () => void;
 }
 
-export function OrderCard({ order, clientName, onEditClick, onDeleteClick }: OrderCardProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'complete':
-        return 'outline';
-      case 'overdue':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
-
-  const getPaymentBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'default';
-      case 'partial':
-        return 'secondary';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getPaymentPercentage = () => {
-    if (!order.amountPaid) return 0;
-    return Math.round((order.amountPaid / order.cost) * 1000) / 10;
-  };
-
-  const deadlineDate = new Date(order.deadline);
-  const isDeadlinePast = isPast(deadlineDate);
-  const deadlineFormatted = formatDistanceToNow(deadlineDate, { addSuffix: true });
-  const paymentPercentage = getPaymentPercentage();
+export function OrderCard({
+  order,
+  onEdit,
+  onDelete,
+  onUpdatePayment,
+}: OrderCardProps) {
+  const clientName = order.client?.name || "Unknown";
 
   return (
-    <Card className="hover-card card-glow">
+    <Card className="relative hover-card card-glow">
+      {/* PAID ribbon */}
+      {order.payment_status === "paid" && (
+        <div
+          className={`
+            absolute top-0 right-0
+            transform translate-x-1/2 -translate-y-1/2 -rotate-45
+            bg-green-600 text-white text-xs font-semibold
+            px-3 py-1
+            shadow-md
+          `}
+        >
+          PAID
+        </div>
+      )}
+
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg">{order.title}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Client: {clientName}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onEditClick}>
-              Edit
-            </Button>
-            <Button variant="destructive" size="sm" onClick={onDeleteClick}>
-              Delete
-            </Button>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Order ID: {order.id}
+        </p>
+        <CardTitle className="mt-1">{order.title}</CardTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          Client: {clientName}
+        </p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={getStatusBadgeVariant(order.status)} className="capitalize">
-              {order.status}
-            </Badge>
-            <Badge variant={getPaymentBadgeVariant(order.paymentStatus)} className="capitalize">
-              {order.paymentStatus}
-              {order.paymentStatus === 'partial' && order.amountPaid && (
-                <span className="ml-1">({paymentPercentage}%)</span>
-              )}
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Deadline</p>
-              <p className={`text-sm ${isDeadlinePast && order.status !== 'complete' ? 'text-destructive' : ''}`}>
-                {deadlineFormatted}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Amount</p>
-              <p className="text-sm font-medium">{formatCurrency(order.cost)}</p>
-            </div>
-          </div>
 
+      <CardContent className="space-y-4">
+        {/* Status & Payment Badges */}
+        <div className="flex items-center gap-2">
+          <Badge variant="outline">{order.status}</Badge>
+          {order.payment_status !== "paid" && (
+            <Badge
+              variant={
+                order.payment_status === "partial"
+                  ? "secondary"
+                  : "destructive"
+              }
+            >
+              {order.payment_status === "partial"
+                ? `Partial`
+                : "Unpaid"}
+            </Badge>
+          )}
+        </div>
+
+        {/* Deadline & Amount */}
+        <div className="flex justify-between items-center">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Description</p>
-            <p className="text-sm mt-1 line-clamp-3">{order.description}</p>
+            <span className="text-sm font-medium text-muted-foreground">
+              Deadline:
+            </span>{" "}
+            {formatDistanceToNow(new Date(order.deadline), {
+              addSuffix: true,
+            })}
           </div>
-
-          <div className="pt-2">
-            <Button asChild variant="default" className="w-full">
-              <Link to={`/orders/${order.id}`}>
-                View Order
-              </Link>
-            </Button>
+          <div className="font-medium">
+            {new Intl.NumberFormat("en-KE", {
+              style: "currency",
+              currency: "KES",
+            }).format(order.cost)}
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+          <Button variant="destructive" size="sm" onClick={onDelete}>
+            Delete
+          </Button>
+          {onUpdatePayment && order.payment_status !== "paid" && (
+            <Button variant="secondary" size="sm" onClick={onUpdatePayment}>
+              Update Payment
+            </Button>
+          )}
+        </div>
+
+        {/* View Order */}
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() =>
+            window.open(`/orders/${order.id}`, "_blank")
+          }
+        >
+          View Order
+        </Button>
       </CardContent>
     </Card>
   );
