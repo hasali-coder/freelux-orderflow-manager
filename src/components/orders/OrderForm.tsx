@@ -1,65 +1,65 @@
-// src/components/orders/OrderForm.tsx
-import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { supabase } from "@/lib/supabaseClient";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react"
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { supabase } from "@/lib/supabaseClient"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+} from "@/components/ui/select"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 
 const schema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "Required"),
   description: z.string().optional(),
-  client_id: z.string().uuid("You must select a client"),
-  cost: z.number().min(0, "Cost must be at least 0"),
-  deadline: z
-    .string()
-    .refine((d) => !isNaN(Date.parse(d)), "Please pick a valid date"),
+  client_id: z.string().uuid("Choose a client"),
+  cost: z.number().min(0, "Must be ≥ 0"),
+  deadline: z.string().refine((d) => !isNaN(Date.parse(d)), "Pick a date"),
   status: z.enum(["pending", "complete", "overdue"]).default("pending"),
   payment_status: z.enum(["unpaid", "partial", "paid"]).default("unpaid"),
-});
-type FormValues = z.infer<typeof schema>;
+})
+type FormValues = z.infer<typeof schema>
 
 interface Props {
-  onSubmit: (values: FormValues) => void;
-  initialValues?: Partial<FormValues>;
+  onSubmit: (vals: FormValues) => void
+  initialValues?: Partial<FormValues>
 }
 
 export function OrderForm({ onSubmit, initialValues = {} }: Props) {
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const {
-    control,
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: initialValues,
-  });
+    defaultValues: initialValues as any,
+  })
 
   useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, name")
-        .order("name", { ascending: true });
-      if (!error && data) setClients(data);
-    })();
-  }, []);
+    supabase
+      .from("clients")
+      .select("id,name")
+      .order("name", { ascending: true })
+      .then(({ data }) => {
+        if (data) setClients(data)
+      })
+  }, [])
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit((vals) => onSubmit(vals))}>
+    <form
+      className="space-y-4"
+      onSubmit={handleSubmit((vals) => onSubmit(vals))}
+    >
       <div>
         <Label>Title</Label>
         <Input {...register("title")} />
@@ -127,7 +127,7 @@ export function OrderForm({ onSubmit, initialValues = {} }: Props) {
                 <Calendar
                   mode="single"
                   selected={field.value ? new Date(field.value) : undefined}
-                  onSelect={(d) => field.onChange(d?.toISOString() as string)}
+                  onSelect={(d) => field.onChange(d?.toISOString()!)}
                 />
               </PopoverContent>
             </Popover>
@@ -145,7 +145,10 @@ export function OrderForm({ onSubmit, initialValues = {} }: Props) {
             control={control}
             name="status"
             render={({ field }) => (
-              <Select value={field.value} onValueChange={(v) => field.onChange(v as any)}>
+              <Select
+                value={field.value}
+                onValueChange={(v) => field.onChange(v as any)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -186,5 +189,5 @@ export function OrderForm({ onSubmit, initialValues = {} }: Props) {
         {initialValues.id ? "Update Order" : "Add Order"}
       </Button>
     </form>
-  );
+  )
 }

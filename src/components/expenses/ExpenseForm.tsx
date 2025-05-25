@@ -1,105 +1,92 @@
+// ─ src/components/expenses/ExpenseForm.tsx ─────────────
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Expense, ExpenseCategory } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "@/components/ui/select";
-import { Expense, ExpenseCategory } from "@/types";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
-interface ExpenseFormProps {
-  onSubmit: (data: Omit<Expense, 'id'>) => void;
-  initialValues?: Expense;
+const schema = z.object({
+  title: z.string().min(1, "Title is required"),
+  amount: z.number().min(0.01, "Amount must be > 0"),
+  date: z.string().refine((d) => !isNaN(Date.parse(d)), "Must pick a valid date"),
+  category: z.enum([
+    "tools",
+    "communication",
+    "utilities",
+    "supplies",
+    "travel",
+    "other",
+  ]) as any as z.ZodType<ExpenseCategory>,
+  notes: z.string().optional(),
+});
+type FormValues = z.infer<typeof schema>;
+
+interface Props {
+  initialValues?: Partial<FormValues>;
+  onSubmit: (values: FormValues) => void;
   buttonText: string;
 }
 
-export function ExpenseForm({ onSubmit, initialValues, buttonText }: ExpenseFormProps) {
-  const [title, setTitle] = useState(initialValues?.title || "");
-  const [amount, setAmount] = useState(initialValues?.amount?.toString() || "");
-  const [category, setCategory] = useState<ExpenseCategory>(initialValues?.category || "other");
-  const [date, setDate] = useState<Date>(
-    initialValues?.date ? new Date(initialValues.date) : new Date()
-  );
-  const [notes, setNotes] = useState(initialValues?.notes || "");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!title.trim()) {
-      setError("Please enter a title for the expense.");
-      return;
-    }
-
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      setError("Please enter a valid amount greater than 0.");
-      return;
-    }
-
-    if (!category) {
-      setError("Please select a category.");
-      return;
-    }
-
-    onSubmit({
-      title: title.trim(),
-      amount: parseFloat(amount),
-      category,
-      date: date.toISOString(),
-      notes: notes.trim() || "", // Ensure notes is a string
-    });
-  };
+export function ExpenseForm({ initialValues = {}, onSubmit, buttonText }: Props) {
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: initialValues as any,
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="text-sm font-medium text-destructive">{error}</div>}
-      
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g., Software Subscription"
-        />
+    <form
+      className="space-y-4"
+      onSubmit={handleSubmit((vals) => onSubmit(vals))}
+    >
+      <div>
+        <Label>Title</Label>
+        <Input {...register("title")} />
+        {errors.title && <p className="text-red-600">{errors.title.message}</p>}
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="amount">Amount</Label>
+
+      <div>
+        <Label>Amount</Label>
         <Input
-          id="amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="e.g., 99.99"
           type="number"
           step="0.01"
+          {...register("amount", { valueAsNumber: true })}
         />
+        {errors.amount && <p className="text-red-600">{errors.amount.message}</p>}
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Select value={category} onValueChange={(value) => setCategory(value as ExpenseCategory)}>
+
+      <div>
+        <Label>Date</Label>
+        <Input type="date" {...register("date")} />
+        {errors.date && <p className="text-red-600">{errors.date.message}</p>}
+      </div>
+
+      <div>
+        <Label>Category</Label>
+        <Select
+          {...register("category")}
+          defaultValue={initialValues.category}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="tools">Tools & Software</SelectItem>
+            <SelectItem value="tools">Tools &amp; Software</SelectItem>
             <SelectItem value="communication">Communication</SelectItem>
             <SelectItem value="utilities">Utilities</SelectItem>
             <SelectItem value="supplies">Supplies</SelectItem>
@@ -107,45 +94,19 @@ export function ExpenseForm({ onSubmit, initialValues, buttonText }: ExpenseForm
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
         </Select>
+        {errors.category && (
+          <p className="text-red-600">{errors.category.message}</p>
+        )}
       </div>
-      
-      <div className="space-y-2">
-        <Label>Date</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(date) => date && setDate(date)}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+
+      <div>
+        <Label>Notes</Label>
+        <Textarea {...register("notes")} />
       </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notes (Optional)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add any additional details..."
-        />
-      </div>
-      
-      <Button type="submit" className="w-full">{buttonText}</Button>
+
+      <Button type="submit" className="w-full">
+        {buttonText}
+      </Button>
     </form>
   );
 }

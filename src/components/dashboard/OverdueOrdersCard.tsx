@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { 
   Card, 
@@ -16,19 +15,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
-import { Order } from "@/types";
 import { Badge } from "@/components/ui/badge";
+
+interface Order {
+  id: string;
+  title: string;
+  cost: number;
+  deadline: string;
+  client?: {
+    name: string;
+  };
+}
 
 interface OverdueOrdersCardProps {
   orders: Order[];
-  clientNames: Record<string, string>;
 }
 
-export function OverdueOrdersCard({ orders, clientNames }: OverdueOrdersCardProps) {
+export function OverdueOrdersCard({ orders }: OverdueOrdersCardProps) {
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
     }).format(value);
   };
 
@@ -66,7 +73,7 @@ export function OverdueOrdersCard({ orders, clientNames }: OverdueOrdersCardProp
                       {order.title}
                     </Link>
                   </TableCell>
-                  <TableCell>{clientNames[order.clientId] || 'Unknown Client'}</TableCell>
+                  <TableCell>{order.client?.name ?? "Unknown Client"}</TableCell>
                   <TableCell className="text-destructive">
                     {formatDistanceToNow(new Date(order.deadline), { addSuffix: true })}
                   </TableCell>

@@ -50,3 +50,28 @@ export type CalendarEventItem = {
   status?: string;
   color?: string;
 };
+
+/**
+ * A single expense record as stored in your Supabase `expenses` table
+ */
+export interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;             // ISO date string
+  category: ExpenseCategory;
+  notes?: string;
+  created_at: string;       // timestamp
+}
+
+/**
+ * The allowed categories for an expense
+ * (must match whatever you use in your Select dropdown)
+ */
+export type ExpenseCategory =
+  | "tools"
+  | "communication"
+  | "utilities"
+  | "supplies"
+  | "travel"
+  | "other";

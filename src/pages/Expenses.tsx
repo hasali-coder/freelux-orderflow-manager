@@ -1,320 +1,282 @@
-
-import React, { useState } from "react";
+// src/pages/Expenses.tsx
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { ExpenseCard } from "@/components/expenses/ExpenseCard";
-import { useData } from "@/context/DataContext";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Expense, ExpenseCategory } from "@/types";
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
+import { Expense, ExpenseCategory } from "@/types";
 
-export default function Expenses() {
-  const { expenses, addExpense, updateExpense, deleteExpense } = useData();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentExpense, setCurrentExpense] = useState<Expense | null>(null);
+// ✏️ NEW: bring in your icons
+import { Plus, Search } from "lucide-react";
+
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<ExpenseCategory | "all">("all");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editExpense, setEditExpense] = useState<Expense | null>(null);
+  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null);
   const { toast } = useToast();
 
-  const filteredExpenses = expenses.filter((expense) => {
-    // Text search
-    const matchesSearch = 
-      expense.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (expense.notes && expense.notes.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    // Category filter
-    const matchesCategory = !categoryFilter || expense.category === categoryFilter;
-    
-    return matchesSearch && matchesCategory;
+  /** Load all expenses */
+  const fetchExpenses = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from<Expense>("expenses")
+        .select("*")
+        .order("date", { ascending: false });
+      if (error) throw error;
+      setExpenses(data || []);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Load failed", description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  /** Handlers */
+  const handleAdd = async (vals: Omit<Expense, "id" | "created_at">) => {
+    try {
+      const { error } = await supabase.from("expenses").insert([vals]);
+      if (error) throw error;
+      toast({ title: "Expense added" });
+      setIsAddOpen(false);
+      await fetchExpenses();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Add failed", description: err.message });
+    }
+  };
+
+  const handleUpdate = async (vals: Omit<Expense, "created_at">) => {
+    if (!editExpense) return;
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .update(vals)
+        .eq("id", editExpense.id);
+      if (error) throw error;
+      toast({ title: "Expense updated" });
+      setEditExpense(null);
+      await fetchExpenses();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Update failed", description: err.message });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteExpense) return;
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", deleteExpense.id);
+      if (error) throw error;
+      toast({ title: "Expense deleted" });
+      setDeleteExpense(null);
+      await fetchExpenses();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Delete failed", description: err.message });
+    }
+  };
+
+  /** Filtering */
+  const filtered = expenses.filter((e) => {
+    const matchText =
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      (e.notes?.toLowerCase().includes(search.toLowerCase()) ?? false);
+    const matchCategory = categoryFilter === "all" || e.category === categoryFilter;
+    return matchText && matchCategory;
   });
 
-  const handleAddExpense = (expenseData: Omit<Expense, 'id'>) => {
-    addExpense(expenseData);
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Expense added",
-      description: "New expense has been added successfully.",
-    });
-  };
-
-  const handleUpdateExpense = (expenseData: Omit<Expense, 'id'>) => {
-    if (currentExpense) {
-      updateExpense({
-        ...currentExpense,
-        ...expenseData,
-      });
-      setIsEditDialogOpen(false);
-      toast({
-        title: "Expense updated",
-        description: "Expense has been updated successfully.",
-      });
-    }
-  };
-
-  const handleDeleteExpense = () => {
-    if (currentExpense) {
-      deleteExpense(currentExpense.id);
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: "Expense deleted",
-        description: "Expense has been deleted successfully.",
-      });
-    }
-  };
-
-  const handleEditClick = (expense: Expense) => {
-    setCurrentExpense(expense);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteClick = (expense: Expense) => {
-    setCurrentExpense(expense);
-    setIsDeleteDialogOpen(true);
-  };
-
-  // Calculate total expenses
-  const totalExpenses = expenses.reduce((total, expense) => total + expense.amount, 0);
-
-  // Calculate expenses by category
-  const expensesByCategory = expenses.reduce((acc, expense) => {
-    if (!acc[expense.category]) {
-      acc[expense.category] = 0;
-    }
-    acc[expense.category] += expense.amount;
+  /** Pie‐chart data */
+  const byCategory = filtered.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + Number(e.amount);
     return acc;
-  }, {} as Record<string, number>);
-
-  // Format for PieChart
-  const categoryData = Object.entries(expensesByCategory).map(([category, amount]) => ({
-    category,
-    amount,
-  }));
-
-  const categoryLabels: Record<string, string> = {
-    tools: 'Tools & Software',
-    communication: 'Communication',
-    utilities: 'Utilities',
-    supplies: 'Supplies',
-    travel: 'Travel',
-    other: 'Other',
-  };
-
-  const COLORS = [
-    '#3B82F6', // blue
-    '#8B5CF6', // purple
-    '#F59E0B', // amber
-    '#10B981', // green
-    '#F97316', // orange
-    '#6B7280', // gray
-  ];
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
+  }, {});
+  const pieData = Object.entries(byCategory).map(([category, amount]) => ({ category, amount }));
+  const COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#F97316", "#6B7280"];
+  const categoryLabels: Record<ExpenseCategory, string> = {
+    tools: "Tools & Software",
+    communication: "Communication",
+    utilities: "Utilities",
+    supplies: "Supplies",
+    travel: "Travel",
+    other: "Other",
   };
 
   return (
-    <div className="space-y-6 animate-in">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="space-y-8 animate-in">
+      {/* Header + Add */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-          <p className="text-muted-foreground">
-            Track and manage your business expenses.
-          </p>
+          <h1 className="text-3xl font-bold">Expenses</h1>
+          <p className="text-muted-foreground">Track and manage your business expenses.</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Button onClick={() => setIsAddOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Expense
+        </Button>
+      </div>
+
+      {/* Chart */}
+      <div className="h-64 md:h-80 w-full bg-card p-4 rounded-lg">
+        <h2 className="text-lg font-medium mb-2">Expenses by Category</h2>
+        <ResponsiveContainer width="100%" height="80%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="amount"
+              nameKey="category"
+              cx="50%"
+              cy="50%"
+              outerRadius={80}
+              label={({ category, amount }) =>
+                `${categoryLabels[category as ExpenseCategory] || category}: ${amount.toLocaleString("en-KE", {
+                  style: "currency",
+                  currency: "KES",
+                })}`
+              }
+            >
+              {pieData.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: number) =>
+                value.toLocaleString("en-KE", { style: "currency", currency: "KES" })
+              }
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex items-center space-x-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+            className="max-w-sm"
+          />
+        </div>
+        <Select
+          value={categoryFilter}
+          onValueChange={(v) => setCategoryFilter(v as ExpenseCategory | "all")}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {Object.entries(categoryLabels).map(([cat, label]) => (
+              <SelectItem key={cat} value={cat}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Cards */}
+      <div className="space-y-4">
+        {loading ? (
+          <p>Loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-muted-foreground">No expenses found.</p>
+        ) : (
+          filtered.map((exp) => (
+            <ExpenseCard
+              key={exp.id}
+              expense={exp}
+              onEditClick={() => setEditExpense(exp)}
+              onDeleteClick={() => setDeleteExpense(exp)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Add Modal */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogTrigger asChild>
+          <span /> {/* no-op */}
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+          </DialogHeader>
+          <ExpenseForm onSubmit={handleAdd} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      {editExpense && (
+        <Dialog open onOpenChange={() => setEditExpense(null)}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
-            </Button>
+            <span />
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Expense</DialogTitle>
-              <DialogDescription>
-                Enter the details for your new expense.
-              </DialogDescription>
-            </DialogHeader>
-            <ExpenseForm onSubmit={handleAddExpense} buttonText="Add Expense" />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="col-span-1 hover-card card-glow">
-          <CardHeader>
-            <CardTitle>Expenses by Category</CardTitle>
-            <CardDescription>
-              Breakdown of your expenses by category
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="amount"
-                    nameKey="category"
-                    label={({ category, amount }) => `${categoryLabels[category] || category}: ${formatCurrency(amount)}`}
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), 'Amount']}
-                    labelFormatter={(category) => categoryLabels[category as string] || category}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--popover))',
-                      borderColor: 'hsl(var(--border))',
-                      borderRadius: 'var(--radius)',
-                      color: 'hsl(var(--popover-foreground))',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4">
-              <p className="text-center font-semibold">
-                Total: {formatCurrency(totalExpenses)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="col-span-2 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search expenses..."
-                className="max-w-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="sm:ml-auto">
-              <Select 
-                value={categoryFilter || "all-categories"} 
-                onValueChange={(val) => setCategoryFilter(val === "all-categories" ? null : val)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-categories">All Categories</SelectItem>
-                  <SelectItem value="tools">Tools & Software</SelectItem>
-                  <SelectItem value="communication">Communication</SelectItem>
-                  <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="supplies">Supplies</SelectItem>
-                  <SelectItem value="travel">Travel</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {filteredExpenses.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No expenses found. Add your first expense to start tracking!</p>
-              </div>
-            ) : (
-              filteredExpenses.map((expense) => (
-                <ExpenseCard
-                  key={expense.id}
-                  expense={expense}
-                  onEditClick={() => handleEditClick(expense)}
-                  onDeleteClick={() => handleDeleteClick(expense)}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Expense Dialog */}
-      {currentExpense && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
               <DialogTitle>Edit Expense</DialogTitle>
-              <DialogDescription>
-                Update information for {currentExpense.title}.
-              </DialogDescription>
             </DialogHeader>
-            <ExpenseForm 
-              onSubmit={handleUpdateExpense} 
-              initialValues={currentExpense} 
-              buttonText="Update Expense"
-            />
+            <ExpenseForm initialValues={editExpense} onSubmit={handleUpdate} />
           </DialogContent>
         </Dialog>
       )}
 
       {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+      {deleteExpense && (
+        <AlertDialog open onOpenChange={() => setDeleteExpense(null)}>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this expense record.
-              This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteExpense}>
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </AlertDialog>
+      )}
     </div>
   );
 }

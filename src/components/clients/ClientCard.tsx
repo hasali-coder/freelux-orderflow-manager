@@ -1,6 +1,12 @@
-// ✅ FILE: src/components/clients/ClientCard.tsx
+// src/components/clients/ClientCard.tsx
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Client, Order } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,30 +27,33 @@ const getFlagEmoji = (countryName: string | null | undefined) => {
     .slice(0, 2)
     .replace(/[^A-Z]/g, "");
   return code
-    .split('')
-    .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
-    .join('');
+    .split("")
+    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join("");
 };
 
-export function ClientCard({ client, orders, onEditClick, onDeleteClick }: ClientCardProps) {
-  const totalSpent = orders.reduce((sum, order) => {
-    if (order.paymentStatus === 'paid') {
-      return sum + order.cost;
-    } else if (order.paymentStatus === 'partial') {
-      return sum + (order.cost / 2);
-    }
+export function ClientCard({
+  client,
+  orders,
+  onEditClick,
+  onDeleteClick,
+}: ClientCardProps) {
+  const totalSpent = orders.reduce((sum, o) => {
+    if (o.payment_status === "paid") return sum + o.cost;
+    if (o.payment_status === "partial") return sum + o.cost / 2;
     return sum;
   }, 0);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-KE", {
+      style: "currency",
+      currency: "KES",
     }).format(value);
-  };
 
-  const completedOrders = orders.filter(order => order.status === 'complete').length;
-  const overdueOrders = orders.filter(order => order.status === 'overdue').length;
+  const completedOrders = orders.filter((o) => o.status === "complete")
+    .length;
+  const overdueOrders = orders.filter((o) => o.status === "overdue")
+    .length;
 
   return (
     <Card className="hover-card card-glow">
@@ -71,23 +80,35 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Email:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Email:
+              </span>
               <p className="text-sm">{client.email}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Phone:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Phone:
+              </span>
               <p className="text-sm">{client.phone}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Preferred Payment:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Preferred Payment:
+              </span>
               <p className="text-sm">{client.preferred_payment_method}</p>
             </div>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Country:</span>
-              <p className="text-sm">{getFlagEmoji(client.country)} {client.country}</p>
+              <span className="text-sm font-medium text-muted-foreground">
+                Country:
+              </span>
+              <p className="text-sm">
+                {getFlagEmoji(client.country)} {client.country}
+              </p>
             </div>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Rating:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Rating:
+              </span>
               <p className="flex gap-1 text-yellow-500">
                 {[...Array(client.rating ?? 0)].map((_, i) => (
                   <Star key={i} size={16} fill="currentColor" />
@@ -98,18 +119,29 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
 
           <div className="space-y-3">
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Total Revenue:</span>
-              <p className="text-sm font-medium">{formatCurrency(totalSpent)}</p>
+              <span className="text-sm font-medium text-muted-foreground">
+                Total Revenue:
+              </span>
+              <p className="text-sm font-medium">
+                {formatCurrency(totalSpent)}
+              </p>
             </div>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Projects:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Projects:
+              </span>
               <div className="flex gap-2 mt-1">
                 <Badge variant="outline">{orders.length} Total</Badge>
-                <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20">
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 dark:bg-green-900/20"
+                >
                   {completedOrders} Completed
                 </Badge>
                 {overdueOrders > 0 && (
-                  <Badge variant="destructive">{overdueOrders} Overdue</Badge>
+                  <Badge variant="destructive">
+                    {overdueOrders} Overdue
+                  </Badge>
                 )}
               </div>
             </div>
@@ -118,7 +150,9 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
 
         {client.notes && (
           <div className="mt-4 pt-4 border-t">
-            <span className="text-sm font-medium text-muted-foreground">Notes:</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Notes:
+            </span>
             <p className="text-sm mt-1">{client.notes}</p>
           </div>
         )}
@@ -127,28 +161,31 @@ export function ClientCard({ client, orders, onEditClick, onDeleteClick }: Clien
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">Recent Orders</span>
-              <Link to={`/orders?client=${client.id}`} className="text-sm text-primary hover:underline">
+              <Link
+                to={`/orders?client=${client.id}`}
+                className="text-sm text-primary hover:underline"
+              >
                 View All
               </Link>
             </div>
             <div className="space-y-1">
-              {orders.slice(0, 2).map((order) => (
+              {orders.slice(0, 2).map((o) => (
                 <Link
-                  key={order.id}
-                  to={`/orders/${order.id}`}
+                  key={o.id}
+                  to={`/orders/${o.id}`}
                   className="flex justify-between items-center py-2 px-3 rounded-md hover:bg-secondary"
                 >
-                  <span className="text-sm">{order.title}</span>
+                  <span className="text-sm">{o.title}</span>
                   <Badge
                     variant={
-                      order.status === 'complete'
-                        ? 'outline'
-                        : order.status === 'overdue'
-                        ? 'destructive'
-                        : 'secondary'
+                      o.status === "complete"
+                        ? "outline"
+                        : o.status === "overdue"
+                        ? "destructive"
+                        : "secondary"
                     }
                   >
-                    {order.status}
+                    {o.status}
                   </Badge>
                 </Link>
               ))}

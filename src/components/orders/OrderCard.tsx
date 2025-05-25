@@ -1,4 +1,4 @@
-// src/components/orders/OrderCard.tsx
+// ✅ FILE: src/components/orders/OrderCard.tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,20 +18,19 @@ export function OrderCard({
   onDelete,
   onUpdatePayment,
 }: OrderCardProps) {
-  const clientName = order.client?.name || "Unknown";
+  const clientName = order.client.name || "Unknown";
 
   return (
     <Card className="relative hover-card card-glow">
-      {/* PAID ribbon */}
+      {/* green PAID ribbon */}
       {order.payment_status === "paid" && (
         <div
-          className={`
+          className="
             absolute top-0 right-0
             transform translate-x-1/2 -translate-y-1/2 -rotate-45
             bg-green-600 text-white text-xs font-semibold
-            px-3 py-1
-            shadow-md
-          `}
+            px-3 py-1 shadow-md
+          "
         >
           PAID
         </div>
@@ -48,25 +47,21 @@ export function OrderCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Status & Payment Badges */}
+        {/* status badges */}
         <div className="flex items-center gap-2">
           <Badge variant="outline">{order.status}</Badge>
           {order.payment_status !== "paid" && (
             <Badge
               variant={
-                order.payment_status === "partial"
-                  ? "secondary"
-                  : "destructive"
+                order.payment_status === "partial" ? "secondary" : "destructive"
               }
             >
-              {order.payment_status === "partial"
-                ? `Partial`
-                : "Unpaid"}
+              {order.payment_status === "partial" ? "Partial" : "Unpaid"}
             </Badge>
           )}
         </div>
 
-        {/* Deadline & Amount */}
+        {/* deadline & cost */}
         <div className="flex justify-between items-center">
           <div>
             <span className="text-sm font-medium text-muted-foreground">
@@ -84,7 +79,7 @@ export function OrderCard({
           </div>
         </div>
 
-        {/* Actions */}
+        {/* actions */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onEdit}>
             Edit
@@ -99,13 +94,11 @@ export function OrderCard({
           )}
         </div>
 
-        {/* View Order */}
+        {/* view order */}
         <Button
           variant="ghost"
           className="w-full"
-          onClick={() =>
-            window.open(`/orders/${order.id}`, "_blank")
-          }
+          onClick={() => window.open(`/orders/${order.id}`, "_blank")}
         >
           View Order
         </Button>
